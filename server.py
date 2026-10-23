@@ -171,28 +171,31 @@ async def health_check():
     return {"status": "ok", "message": "Weather API работает!"}
 
 
-# --- Раздача статических файлов фронтенда (опционально) ---
-# Если фронтенд собран в папку dist/, сервер будет раздавать его
-DIST_DIR = os.path.join(os.path.dirname(__file__), "dist")
-if os.path.isdir(DIST_DIR):
-    app.mount("/assets", StaticFiles(directory=os.path.join(DIST_DIR, "assets")), name="assets")
+# --- Раздача статических файлов фронтенда ---
+# Фронтенд лежит в папке static/ (чистый HTML+JS, не требует сборки)
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+    @app.get("/")
+    async def serve_index():
+        """Главная страница."""
+        return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
         """Раздаём фронтенд для всех не-API маршрутов."""
-        file_path = os.path.join(DIST_DIR, full_path)
+        file_path = os.path.join(STATIC_DIR, full_path)
         if os.path.isfile(file_path):
             return FileResponse(file_path)
-        return FileResponse(os.path.join(DIST_DIR, "index.html"))
+        return FileResponse(os.path.join(STATIC_DIR, "index.html"))
 
 
 if __name__ == "__main__":
     import uvicorn
     print("🌤️  Weather API запускается на http://localhost:8000")
     print("📖 Документация: http://localhost:8000/docs")
-    print("📂 Фронтенд: откройте http://localhost:8000")
-    print("\n⚠️  Для работы фронтенда нужно сначала собрать его:")
-    print("   npm install")
-    print("   npm run build")
-    print("\nИли запустите фронтенд отдельно: npm run dev\n")
+    print("🌐 Фронтенд: http://localhost:8000")
+    print("\n✅ Готово! Откройте http://localhost:8000 в браузере\n")
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
