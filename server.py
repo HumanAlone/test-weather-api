@@ -19,6 +19,11 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 import httpx
 import os
+import logging
+
+# Настраиваем логирование
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Weather API", version="1.0.0")
 
@@ -45,19 +50,26 @@ async def search_city(query: str = Query(..., min_length=1, description="Наз�
     Поиск города по названию.
     Возвращает список совпадений с координатами.
     """
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        response = await client.get(
-            GEO_API,
-            params={
-                "name": query,
-                "count": 10,
-                "language": "ru",
-                "format": "json",
-            },
-        )
+    logger.info(f"🔍 Поиск города: {query}")
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            response = await client.get(
+                GEO_API,
+                params={
+                    "name": query,
+                    "count": 10,
+                    "language": "ru",
+                    "format": "json",
+                },
+            )
+            logger.info(f"📡 Ответ от геокодера: {response.status_code}")
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=502, detail="Ошибка сервиса геокодирования")
+        if response.status_code != 200:
+            logger.error(f"❌ Ошибка геокодирования: {response.status_code}")
+            raise HTTPException(status_code=502, detail="Ошибка сервиса геокодирования")
+    except httpx.RequestError as e:
+        logger.error(f"❌ Ошибка запроса к геокодеру: {e}")
+        raise HTTPException(status_code=502, detail=f"Ошибка соединения: {str(e)}")
 
     data = response.json()
     results = data.get("results", [])
@@ -87,22 +99,29 @@ async def get_weather(
     Получение погоды по координатам.
     Возвращает текущую погоду, почасовой и дневной прогноз.
     """
-    async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        response = await client.get(
-            WEATHER_API,
-            params={
-                "latitude": lat,
-                "longitude": lon,
-                "current": "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl",
-                "hourly": "temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m",
-                "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,sunrise,sunset",
-                "timezone": "auto",
-                "forecast_days": 7,
-            },
-        )
+    logger.info(f"🌡️ Запрос погоды: lat={lat}, lon={lon}")
+    try:
+        async with httpx.AsyncClient(timeout=TIMEOUT) as client:
+            response = await client.get(
+                WEATHER_API,
+                params={
+                    "latitude": lat,
+                    "longitude": lon,
+                    "current": "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl",
+                    "hourly": "temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m",
+                    "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max,sunrise,sunset",
+                    "timezone": "auto",
+                    "forecast_days": 7,
+                },
+            )
+            logger.info(f"📡 Ответ от weather API: {response.status_code}")
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=502, detail="Ошибка сервиса погоды")
+        if response.status_code != 200:
+            logger.error(f"❌ Ошибка weather API: {response.status_code}")
+            raise HTTPException(status_code=502, detail="Ошибка сервиса погоды")
+    except httpx.RequestError as e:
+        logger.error(f"❌ Ошибка запроса к weather API: {e}")
+        raise HTTPException(status_code=502, detail=f"Ошибка соединения: {str(e)}")
 
     data = response.json()
 
