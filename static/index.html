@@ -166,7 +166,10 @@
 
             try {
                 const response = await fetch(`/api/weather?lat=${lat}&lon=${lon}`);
-                if (!response.ok) throw new Error('Ошибка получения погоды');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                }
                 const data = await response.json();
 
                 // Обновляем фон
@@ -223,8 +226,8 @@
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('error').classList.remove('hidden');
-                document.getElementById('error-text').textContent = 'Не удалось загрузить погоду. Проверьте подключение к интернету.';
-                console.error(error);
+                document.getElementById('error-text').textContent = `Ошибка: ${error.message}`;
+                console.error('Ошибка загрузки погоды:', error);
             }
         }
 
