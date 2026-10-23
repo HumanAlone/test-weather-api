@@ -3,7 +3,7 @@ import CitySearch from './components/CitySearch';
 import CurrentWeatherCard from './components/CurrentWeatherCard';
 import HourlyForecastCard from './components/HourlyForecastCard';
 import DailyForecastCard from './components/DailyForecastCard';
-import { getWeather } from './services/weatherApi';
+import { getWeather, isBackendAvailable } from './services/weatherApi';
 import { getWeatherGradient } from './utils/weatherCodes';
 import { WeatherData, GeoLocation } from './types/weather';
 
@@ -19,6 +19,7 @@ export default function App() {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingBackend, setUsingBackend] = useState<boolean | null>(null);
 
   const fetchWeather = async (location: GeoLocation) => {
     setLoading(true);
@@ -26,6 +27,7 @@ export default function App() {
     try {
       const data = await getWeather(location);
       setWeather(data);
+      setUsingBackend(await isBackendAvailable());
     } catch (err) {
       setError('Не удалось загрузить данные о погоде. Попробуйте позже.');
       console.error(err);
@@ -57,6 +59,22 @@ export default function App() {
             </h1>
             <div className="flex justify-center">
               <CitySearch onSelect={handleCitySelect} />
+            </div>
+            
+            {/* Индикатор источника данных */}
+            <div className="flex justify-center mt-3">
+              {usingBackend === true && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-green-200 bg-green-500/20 px-3 py-1 rounded-full border border-green-400/30">
+                  <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                  Python API подключён
+                </span>
+              )}
+              {usingBackend === false && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-yellow-200 bg-yellow-500/20 px-3 py-1 rounded-full border border-yellow-400/30">
+                  <span className="w-2 h-2 bg-yellow-400 rounded-full"></span>
+                  Прямое подключение к Open-Meteo (запустите server.py для Python API)
+                </span>
+              )}
             </div>
           </div>
         </header>
@@ -94,7 +112,7 @@ export default function App() {
               <DailyForecastCard daily={weather.daily} />
               
               <div className="text-center text-white/50 text-sm pt-4">
-                Данные предоставлены Open-Meteo API • Обновлено: {new Date(weather.current.time).toLocaleString('ru-RU')}
+                Данные: Open-Meteo API • Обновлено: {new Date(weather.current.time).toLocaleString('ru-RU')}
               </div>
             </div>
           )}
