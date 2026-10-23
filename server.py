@@ -190,4 +190,9 @@ if __name__ == "__main__":
     import uvicorn
     print("🌤️  Weather API запускается на http://localhost:8000")
     print("📖 Документация: http://localhost:8000/docs")
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    print("📂 Фронтенд: откройте http://localhost:8000")
+    print("\n⚠️  Для работы фронтенда нужно сначала собрать его:")
+    print("   npm install")
+    print("   npm run build")
+    print("\nИли запустите фронтенд отдельно: npm run dev\n")
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
